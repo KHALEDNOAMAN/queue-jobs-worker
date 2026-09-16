@@ -330,7 +330,7 @@ export class PostgreSQLStorageAdapter implements StorageAdapter {
     if (input.lockId !== undefined) {
       await this.pool.query(
         `UPDATE qjw_jobs
-         SET status          = 'waiting',
+         SET status          = CASE WHEN $3::timestamptz > NOW() THEN 'delayed' ELSE 'waiting' END,
              attempts_made   = $1,
              attempts        = attempts || $2::jsonb,
              run_at          = $3::timestamptz,
@@ -343,13 +343,13 @@ export class PostgreSQLStorageAdapter implements StorageAdapter {
     } else {
       await this.pool.query(
         `UPDATE qjw_jobs
-         SET status         = 'waiting',
-             attempts_made  = $1,
-             attempts       = attempts || $2::jsonb,
-             run_at         = $3::timestamptz,
-             lock_id        = NULL,
+         SET status          = CASE WHEN $3::timestamptz > NOW() THEN 'delayed' ELSE 'waiting' END,
+             attempts_made   = $1,
+             attempts        = attempts || $2::jsonb,
+             run_at          = $3::timestamptz,
+             lock_id         = NULL,
              lock_expires_at = NULL,
-             updated_at     = NOW()
+             updated_at      = NOW()
          WHERE id = $4`,
         [input.attemptNumber, JSON.stringify([attempt]), input.runAt, input.jobId],
       );
