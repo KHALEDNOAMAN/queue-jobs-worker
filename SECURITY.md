@@ -1,39 +1,35 @@
 # Security
 
-This project follows a simple security approach: keep credentials safe, avoid exposing sensitive data, and treat worker execution as trusted application code.
-
-## Basic Rules
-
-- Keep connection strings and secrets in environment variables or a secret manager.
-- Never hard-code credentials in source code.
-- Do not log sensitive payloads, connection details, or tokens by default.
-- Use secure database connections when your hosting provider supports them.
-- Ensure workers only process authorized queues and trusted code paths.
-- Prefer atomic locking and safe state transitions for job processing.
-- Handle processor errors without leaking sensitive internals.
-
-## Job and Payload Safety
-
-Job payloads may contain sensitive information. The library should not expose them in logs or default error output. Applications should validate payload data and avoid storing unnecessary secrets in queue jobs.
-
-## Worker Safety
-
-Workers execute user-defined processor functions. That means they should run in a trusted environment and only be used with code you control. The package does not sandbox untrusted JavaScript.
-
-## Storage Safety
-
-Storage adapters should use secure authentication and encrypted transport whenever available. Queue state changes must remain atomic and consistent to avoid corruption or double-processing.
+I believe security issues are welcome and should be reported responsibly.
 
 ## Reporting a Vulnerability
 
-Please report security issues privately to the project maintainers instead of opening a public issue.
+For sensitive vulnerabilities that could expose credentials, user data allow unauthorized access or enable code execution please **do not open a public GitHub issue**.
 
-Include:
+Instead I recommend you report them privately to the project maintainer.
 
-- a short description of the issue
-- affected version
-- reproduction steps
-- impact
-- suggested fix if known
+Please include:
 
-This project should be treated as a trusted runtime component in a secure application environment.
+* version
+
+* Short description
+
+* Reproduction steps
+
+* Potential impact
+
+## Public Security Issues
+
+For non-sensitive security bugs hardening improvements or issues that do not expose exploitable details you may open a **GitHub issue**.
+
+When reporting publicly avoid including credentials, private data exploit details or other sensitive information.
+
+## Security Considerations
+
+* Keep database and Redis credentials outside source code.
+
+* Avoid storing secrets in job payloads.
+
+* Workers execute user-defined JavaScript. Do not sandbox untrusted code.
+
+* Use connections and authentication, for production storage backends.
