@@ -2,6 +2,14 @@
 
 Changes to the storage module: `StorageAdapter` interface and all adapter implementations.
 
+## [1.0.6] — 2026-09-16
+
+### Fixed
+
+- **Requeue logic status based on `runAt`**
+  - Updated job requeue logic across all storage adapters (`InMemoryStorageAdapter`, `RedisStorageAdapter`, `PostgreSQLStorageAdapter`, `MySQLStorageAdapter`) to set job status to `delayed` when `runAt` is in the future, and `waiting` when `runAt` is due.
+  - `RedisStorageAdapter`: Moves requeued jobs to the delayed ZSET when `runAt` is in the future, or waiting ZSET when due.
+
 ---
 
 ## [1.0.5] — 2026-09-15

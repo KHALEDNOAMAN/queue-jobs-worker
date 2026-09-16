@@ -63,6 +63,39 @@ describe("Worker", () => {
     await worker.stop();
   });
 
+  it("stores delayed retry with delayed status and immediate retry with waiting status", async () => {
+    client = new QueueClient({ defaults: { pollInterval: 50 } });
+    const queue = client.createQueue("retry-status-test");
+
+    const retryingStatuses: { type: string; status: string }[] = [];
+    client.on("job:retrying", (jobData) => {
+      retryingStatuses.push({ type: jobData.type, status: jobData.status });
+    });
+
+    queue.process("fail-delayed", async () => {
+      throw new Error("retry me delayed");
+    });
+    queue.process("fail-immediate", async () => {
+      throw new Error("retry me immediate");
+    });
+
+    // Job 1: delayed retry (retryDelay = 60000ms)
+    await queue.enqueue("fail-delayed", {}, { attempts: 2, retryDelay: 60000 });
+    // Job 2: immediate retry (retryDelay = 0ms)
+    await queue.enqueue("fail-immediate", {}, { attempts: 2, retryDelay: 0 });
+
+    const worker = queue.createWorker({ concurrency: 2 });
+    await sleep(300);
+
+    const delayedRetry = retryingStatuses.find((item) => item.type === "fail-delayed");
+    const immediateRetry = retryingStatuses.find((item) => item.type === "fail-immediate");
+
+    expect(delayedRetry?.status).toBe("delayed");
+    expect(immediateRetry?.status).toBe("waiting");
+
+    await worker.stop();
+  });
+
   it("moves job to DLQ after exhausting attempts", async () => {
     client = new QueueClient({ defaults: { pollInterval: 50 } });
     const queue = client.createQueue("dlq-test");

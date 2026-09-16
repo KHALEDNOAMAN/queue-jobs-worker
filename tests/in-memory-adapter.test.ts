@@ -91,7 +91,7 @@ describe("InMemoryStorageAdapter", () => {
     expect(job!.completedAt).not.toBeNull();
   });
 
-  it("requeues a failed job", async () => {
+  it("requeues a failed job with future runAt as delayed", async () => {
     await adapter.enqueue(baseInput());
     await adapter.claim({
       queue: "test",
@@ -102,9 +102,25 @@ describe("InMemoryStorageAdapter", () => {
     const future = new Date(Date.now() + 2000).toISOString();
     await adapter.requeue({ jobId: "job-1", runAt: future, error: "timeout" });
     const job = await adapter.getJob("job-1");
-    expect(job!.status).toBe("waiting");
+    expect(job!.status).toBe("delayed");
     expect(job!.attempts).toHaveLength(1);
     expect(job!.attempts[0]!.error).toBe("timeout");
+  });
+
+  it("requeues a failed job with due runAt as waiting", async () => {
+    await adapter.enqueue({ ...baseInput(), id: "job-due" });
+    await adapter.claim({
+      queue: "test",
+      lockId: "w1",
+      lockDuration: 30_000,
+      now: new Date().toISOString(),
+    });
+    const pastOrNow = new Date(Date.now() - 1000).toISOString();
+    await adapter.requeue({ jobId: "job-due", runAt: pastOrNow, error: "immediate retry" });
+    const job = await adapter.getJob("job-due");
+    expect(job!.status).toBe("waiting");
+    expect(job!.attempts).toHaveLength(1);
+    expect(job!.attempts[0]!.error).toBe("immediate retry");
   });
 
   it("moves a job to the DLQ", async () => {

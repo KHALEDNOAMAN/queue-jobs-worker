@@ -322,9 +322,13 @@ export class RedisStorageAdapter implements StorageAdapter {
       ...(input.stack !== undefined ? { stack: input.stack } : {}),
     });
 
+    const runAtMs = new Date(input.runAt).getTime();
+    const isDelayed = runAtMs > Date.now();
+    const status: JobStatus = isDelayed ? "delayed" : "waiting";
+
     const multi = this.client.multi();
     multi.hSet(k.job(input.jobId), {
-      status: "waiting",
+      status,
       attemptsMade: String(input.attemptNumber),
       attempts: JSON.stringify(attempts),
       runAt: input.runAt,
@@ -333,11 +337,20 @@ export class RedisStorageAdapter implements StorageAdapter {
       updatedAt: now,
     });
     multi.sRem(k.active(queue), input.jobId);
-    // Put back in delayed set so the claim script can promote it when due.
-    multi.zAdd(k.delayed(queue), {
-      score: new Date(input.runAt).getTime(),
-      value: input.jobId,
-    });
+    if (isDelayed) {
+      multi.zAdd(k.delayed(queue), {
+        score: runAtMs,
+        value: input.jobId,
+      });
+      multi.zRem(k.waiting(queue), input.jobId);
+    } else {
+      const priority = Number(hash["priority"] ?? 0);
+      multi.zAdd(k.waiting(queue), {
+        score: -priority,
+        value: input.jobId,
+      });
+      multi.zRem(k.delayed(queue), input.jobId);
+    }
     await multi.exec();
   }
 

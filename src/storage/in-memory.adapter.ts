@@ -195,8 +195,10 @@ export class InMemoryStorageAdapter implements StorageAdapter {
       ...(input.stack !== undefined && { stack: input.stack }),
     });
 
+    const isDelayed = new Date(input.runAt).getTime() > Date.now();
+
     job.attemptsMade = input.attemptNumber;
-    job.status = "waiting";
+    job.status = isDelayed ? "delayed" : "waiting";
     job.runAt = input.runAt;
     job.lockId = null;
     job.lockExpiresAt = null;

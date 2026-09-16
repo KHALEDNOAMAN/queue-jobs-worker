@@ -343,7 +343,7 @@ export class MySQLStorageAdapter implements StorageAdapter {
     if (input.lockId !== undefined) {
       await this.pool.query(
         `UPDATE qjw_jobs
-         SET status          = 'waiting',
+         SET status          = CASE WHEN ? > NOW(3) THEN 'delayed' ELSE 'waiting' END,
              attempts_made   = attempts_made + 1,
              attempts        = JSON_ARRAY_APPEND(attempts, '$', CAST(? AS JSON)),
              run_at          = ?,
@@ -351,12 +351,12 @@ export class MySQLStorageAdapter implements StorageAdapter {
              lock_expires_at = NULL,
              updated_at      = NOW(3)
          WHERE id = ? AND status = 'active' AND lock_id = ?`,
-        [attempt, input.runAt, input.jobId, input.lockId],
+        [input.runAt, attempt, input.runAt, input.jobId, input.lockId],
       );
     } else {
       await this.pool.query(
         `UPDATE qjw_jobs
-         SET status          = 'waiting',
+         SET status          = CASE WHEN ? > NOW(3) THEN 'delayed' ELSE 'waiting' END,
              attempts_made   = attempts_made + 1,
              attempts        = JSON_ARRAY_APPEND(attempts, '$', CAST(? AS JSON)),
              run_at          = ?,
@@ -364,7 +364,7 @@ export class MySQLStorageAdapter implements StorageAdapter {
              lock_expires_at = NULL,
              updated_at      = NOW(3)
          WHERE id = ?`,
-        [attempt, input.runAt, input.jobId],
+        [input.runAt, attempt, input.runAt, input.jobId],
       );
     }
   }
