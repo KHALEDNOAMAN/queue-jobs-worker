@@ -2,6 +2,14 @@
 
 Changes to the test suite: unit tests, integration tests, and test infrastructure.
 
+## [1.0.6] — 2026-09-16
+
+### Added
+
+- **Regression tests for delayed and immediate job retries**
+  - Updated `tests/in-memory-adapter.test.ts` to assert `status: "delayed"` when requeuing with a future `runAt` and `status: "waiting"` when requeuing with a due `runAt`.
+  - Added test in `tests/worker.test.ts` verifying that worker retries set job status to `delayed` for future retries (`retryDelay > 0`) and `waiting` for immediate retries (`retryDelay: 0`).
+
 ---
 
 ## [1.0.5] — 2026-09-15
